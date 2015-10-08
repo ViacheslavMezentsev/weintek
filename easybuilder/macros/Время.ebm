@@ -1,0 +1,121 @@
+// Ссылки:
+// 1. Программируем временные сложности: http://www.codesys.ru/docs/TimeExperience.pdf
+
+sub GetLocalTime( unsigned int time )
+
+    bool IsLeapYear = false
+    char DayOfWeek = 0, Seconds = 0, Minutes = 0, Hours = 0, n = 0
+    unsigned short Year = 0, Month = 0, Day = 0
+    unsigned int uiDate = 0, uiTime = 0, uiDay = 0, days_to_month = 0, days_to_year = 0, tmp = 0
+    
+    unsigned short DoM[12] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 }
+
+    TRACE( "time = %d", time )
+
+    // Переводим количество секунд в количество дней с 2000 г.
+    uiDate = time / 86400
+    
+    TRACE( "uiDate = %d", uiDate )
+
+    // День недели, считая от нуля.
+    DayOfWeek = ( uiDate + 3 ) % 7
+
+    // Грубо оцениваем год.
+    Year = uiDate / 365
+
+    // Убираем годы до начала отсчёта.
+    tmp =  Year
+
+    // Определяем количество дней в годах.
+    days_to_year = tmp * 365 + ( tmp + 1 ) / 4 + ( tmp + 69 ) / 100 + ( tmp + 369 ) / 400
+
+    TRACE( "days_to_year = %d", days_to_year )
+    
+    // Делаем уточнение.
+    if uiDate < days_to_year then
+        
+        Year = Year - 1
+        tmp =  Year
+        
+        // Определяем количество дней в годах.
+        days_to_year = tmp * 365 + ( tmp + 1 ) / 4 + ( tmp + 69 ) / 100 + ( tmp + 369 ) / 400
+        
+    end if
+
+    // Определяем день года.
+    uiDay = uiDate - days_to_year + 1
+
+    // Грубо оценим месяц.
+    Month = uiDay / 29 + 1
+    
+    if Month > 12 then
+    
+        Month = 12
+    
+    end if
+    
+    // Определяем количество дней в истекших месяцах.
+    n = Month - 1
+    days_to_month = DoM[ n ]
+    
+    IsLeapYear = ( ( Year % 400 == 0 ) or ( Year % 4 == 0 ) ) and ( Year % 100 <> 0 )
+    
+    if Month > 2 and IsLeapYear then
+    
+        days_to_month = days_to_month + 1
+
+    end if
+    
+    // Делаем уточнение.
+    if uiDay <= days_to_month then
+        
+        Month = Month - 1
+
+        n = Month - 1
+        days_to_month = DoM[ n ]
+               
+        if Month > 2 and IsLeapYear then
+        
+            days_to_month = days_to_month + 1
+
+        end if
+
+    end if
+
+    // Определяем день.
+    Day = uiDay - days_to_month
+
+    // Вычисляем эквивалент неполного дня в секундах.
+    uiTime = time % 86400
+
+    Seconds = uiTime % 60
+
+    uiTime = uiTime / 60
+
+    Minutes = uiTime % 60
+
+    Hours = uiTime / 60
+    
+    TRACE( "Year = %d", Year )
+    TRACE( "Month = %d", Month )
+    TRACE( "DayOfWeek = %d", DayOfWeek )
+    TRACE( "Day = %d", Day )
+    TRACE( "Hours = %d", Hours )
+    TRACE( "Minutes = %d", Minutes )
+    TRACE( "Seconds = %d", Seconds )
+
+end sub
+
+macro_command main()
+
+    unsigned int time = 0
+
+    unsigned short R56 = 3770 
+    unsigned short R57 = 7593
+
+    POW( 2, 16, time )
+    time = R57 * time + R56
+    
+    GetLocalTime( time )
+
+end macro_command
